@@ -1,10 +1,9 @@
 {
   "name": "Login",
-  "short_name": "login",
-  "theme_color": "#217093",
+  "short_name": "Login",
+  "theme_color": "#2196f3",
   "background_color": "#2196f3",
   "display": "fullscreen",
-  "orientation": "portrait",
   "Scope": "/",
   "start_url": "/",
   "icons": [
