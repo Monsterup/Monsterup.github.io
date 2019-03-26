@@ -1,13 +1,20 @@
-if ('serviceWorker' in navigator){
+if (navigator.serviceWorker){
     window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/serviceworker.js').then(
+        navigator.serviceWorker.register('/sw.js').then(
             function (reg) {
-                // registerasi service worker berhasil
-                console.log('SW registration success, scope :',reg.scope);
+                // console.log('SW registration success, scope :',reg.scope);
+                return navigator.serviceWorker.ready;
+            }).then(function(reg){
+                document.getElementById('req-sync')
+                .addEventListener('click', function(){
+                    reg.sync.register('image-fetch').then(function(){
+                        console.log('sync-registered');
+                    }).catch(function(err){
+                        console.log('unable to fetch image. Error : ', err);
+                    });
+                });
             }, function (err) {
-                // reg failed
-                console.log('SW registration faild : ', err);
-            }
-        )
+                console.log('SW registration failed : ', err);
+            });
     })
 }

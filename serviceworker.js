@@ -1,81 +1,104 @@
-var CACHE_NAME = 'latihan-pwa-cache-v1';
+var CACHE_NAME = 'my-pwa-cache-v1';
 
 var urlToCache = [
     '/',
-    '/css/style.css',
-    '/images/Winter.jpg',
-    '/js/map-custom.js',
+    '/css/main.css',
+    '/css/bootstrap.min.css',
     '/js/jquery.min.js',
-    '/js/map-custom.js',
-    '/js/script.js',
-    '/manifest.json',
-    '/js/main.js'
+    '/js/main.js',
+    '/images/ugm-png-6.png'
 ];
 
-// install cache on browser
-self.addEventListener('install', function(event){
-    //do install
+self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME).then(
-            function(cache){
-                //cek apakah cache sudah terinstall
-                console.log("service worker do install . .");
+            function(cache) {
+                console.log('service worker do install...', cache);
                 return cache.addAll(urlToCache);
             }
+            // function(err){
+            //     console.log('err : ', err);
+            // }
         )
-    );
-    self.skipWaiting();
+    )
 });
 
-//aktivasi service worker
 self.addEventListener('activate', function(event){
     event.waitUntil(
-        caches.keys().then(function(cacheName){
+        caches.keys().then(function(cacheNames){
             return Promise.all(
-                //jika sudah ada cache dengan versi beda maka di hapus
-                cacheName.filter(function(cacheName){
+                cacheNames.filter(function(cacheName){
                     return cacheName !== CACHE_NAME;
                 }).map(function(cacheName){
                     return caches.delete(cacheName);
                 })
-            );
+            )
         })
-    );
-    if(self.clients && clients.claim){
-        clients.claim();
-    }
-});
+    )
+}); 
 
 self.addEventListener('fetch', function(event){
     var request = event.request;
     var url = new URL(request.url);
 
-    /**
-     * menggunakan data local cache
-     */
+    //Misahin caches file dengan cache API
+    if(url.origin === location.origin){
+        event.respondWith(
+            caches.match(request).then(function(response){
+                return response || fetch(request);
+            })
+        )
+    } 
+    else {
+        event.respondWith(
+            caches.open('list-mahasiswa-cache-v1').then(async function(cache){
+                try {
+                    const liveRequest = await fetch(request);
+                    cache.put(request, liveRequest.clone());
+                    return liveRequest;
+                }
+                catch (e) {
+                    const response = await caches.match(request);
+                    if (response)
+                        return response;
+                    return caches.match('/fallback.json');
+                }
+            })
+        )
+    }
 
-     if(url.origin === location.origin){
-         event.respondWith(
-             caches.match(request).then(function(response){
-                 //jika ada data di caache, maka tampilkan data cache, jika tidak maka petch request
-                 return response || fetch(request);
-             })
-         )
-     }else{
-         //internet API
-         event.respondWith(
-             caches.open('mahasiswa-cache-v1').then(function(cache){
-                 return fetch(request).then(function(liveRequest){
-                     cache.put(request, liveRequest.clone());
-                     //save cache to mahasiswa-cache-v1
-                     return liveRequest;
-                 }).catch(function(){
-                     return caches.match(request).then(function(response){
-                         if(response) return response;
-                         return caches.match('/fallback.json');
-                     })
-                 })
-             })
-         )
-     }
+    // event.respondWith(
+    //     caches.match(event.request).then(function(response){
+    //         console.log(response);
+    //         if(response){
+    //             return response;
+    //         }
+    //         return fetch(event.request);
+    //     })
+    // )
 });
+
+self.addEventListener('notificationclick', function(e){
+    var notification = e.notification;
+    var primaryKey = notification.data.primaryKey;
+    var action = e.action;
+
+    console.log(primaryKey);
+
+    if(action === 'close'){
+        notification.close();
+    } else {
+        ClientRectList.openWindow('http://google.com');
+        notification.close();
+    }
+})
+
+if(navigator.serviceWorker){
+    window.addEventListener('load', function(){
+        navigator.serviceWorker.register('/serviceworker.js').then(function(reg){
+            console.log('SW regis sukses dgn skop', reg.scope);
+        }, function(err){
+            console.log("SW regis failed", err);
+        });
+    });
+}
