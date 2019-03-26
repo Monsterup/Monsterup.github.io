@@ -45,3 +45,37 @@ self.addEventListener('activate', function(event){
         clients.claim();
     }
 });
+
+self.addEventListener('fetch', function(event){
+    var request = event.request;
+    var url = new URL(request.url);
+
+    /**
+     * menggunakan data local cache
+     */
+
+     if(url.origin === location.origin){
+         event.respondWith(
+             caches.match(request).then(function(response){
+                 //jika ada data di caache, maka tampilkan data cache, jika tidak maka petch request
+                 return response || fetch(request);
+             })
+         )
+     }else{
+         //internet API
+         event.respondWith(
+             caches.open('mahasiswa-cache-v1').then(function(cache){
+                 return fetch(request).then(function(liveRequest){
+                     cache.put(request, liveRequest.clone());
+                     //save cache to mahasiswa-cache-v1
+                     return liveRequest;
+                 }).catch(function(){
+                     return caches.match(request).then(function(response){
+                         if(response) return response;
+                         return caches.match('/fallback.json');
+                     })
+                 })
+             })
+         )
+     }
+});
